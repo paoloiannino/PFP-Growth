@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/paolo/Documents/HPC/PFP-Growth/src/fp_tree.cpp
+fp_tree.h
+/home/paolo/Documents/HPC/PFP-Growth/src/fp_tree.h
+
+/home/paolo/Documents/HPC/PFP-Growth/src/fp_tree.h
+istream
+-
+vector
+-
+memory
+-
+map
+-
+
+/home/paolo/Documents/HPC/PFP-Growth/src/main.cpp
+iostream
+-
+algorithm
+-
+fstream
+-
+sstream
+-
+map
+-
+vector
+-
+set
+-
+fp_tree.h
+/home/paolo/Documents/HPC/PFP-Growth/src/fp_tree.h
+

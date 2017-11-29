@@ -1,0 +1,1 @@
+/usr/bin/g++   -std=c++11   CMakeFiles/PFP-Growth.dir/src/main.cpp.o CMakeFiles/PFP-Growth.dir/src/fp_tree.cpp.o  -o PFP-Growth -rdynamic 
