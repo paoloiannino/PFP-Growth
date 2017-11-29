@@ -11,7 +11,6 @@
 using namespace std;
 
 vector<pair<vector<string>, int>> result;
-map<string, int> *tmp_support;
 
 bool pair_compare (const pair<string, int> &a, const pair<string, int> &b) {
     return a.second < b.second;
@@ -21,9 +20,17 @@ bool pair_compare_result (pair<vector<string>, int> a, pair<vector<string>, int>
     return a.second > b.second;
 }
 
-bool compare_with_support (const string &a, const string &b){
-    return tmp_support->at(a) > tmp_support->at(b);
-}
+struct support_compare{
+    support_compare(const map<string, int> &support_reference)
+        : support_reference(support_reference) {};
+
+    bool operator() (const string &a, const string &b){
+        return support_reference.at(a) > support_reference.at(b);
+    }
+
+    map<string, int> support_reference;
+};
+
 
 void fp_growth(const vector<vector<string>> &transactions, const vector<string> &pattern, int threshold){
     map<string, int> support_count;
@@ -51,9 +58,8 @@ void fp_growth(const vector<vector<string>> &transactions, const vector<string> 
 
     sort(header_table.begin(), header_table.end(), pair_compare);
 
-    tmp_support = &support_count;
     for(vector<string> transaction : transactions){
-        sort(transaction.begin(), transaction.end(), compare_with_support);
+        sort(transaction.begin(), transaction.end(), support_compare(support_count));
         ft->insert_transaction(transaction.begin(), transaction.end());
     }
 
@@ -110,20 +116,6 @@ int main(int argc, char **argv)
         transactions.push_back(*tmp);
         iss.clear();
     }
-
-//    for(map<string, int>::iterator it = support_count.begin(); it != support_count.end(); it++){
-//        cout << it->first << ": " << it->second << endl;
-//        header_table.push_back(*it);
-//    }
-
-//    sort(header_table.begin(), header_table.end(), pair_compare);
-
-//    fp_tree *ft = new fp_tree();
-
-//    for(vector<vector<string>>::const_iterator it = transactions.begin(); it != transactions.end(); it++)
-//        ft->insert_transaction(it->cbegin(), it->cend());
-
-//    shared_ptr<vector<vector<string>>> prova = ft->get_transaction("C");
 
     vector<string> pattern;
     pattern.push_back(string());
