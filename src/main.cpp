@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <set>
+#include <climits>      // For INT_MAX
 
 #include "fp_tree.h"
 
@@ -78,36 +79,36 @@ void fp_growth(const vector<vector<string>> &transactions, const vector<string> 
 
 int main(int argc, char **argv)
 {
+    int threshold (0);
+    int word_per_line (INT_MAX);
+    int shortest_itemset (INT_MAX);
+    int i (0);
     ifstream dataset;
     istringstream iss;
     string item;
     string line;
-    map<string, int> support_count;
-    vector<pair<string, int> > header_table;
-    vector<vector<string> > transactions;
+    vector<vector<string>> transactions;
     vector<string> *tmp;
-    int threshold = 0;
-    int word_per_line = INT32_MAX;
 
-
-    if(argc == 4){
+    if(argc == 5
+            && (threshold = stoi(argv[2])) >=0
+            && (word_per_line = stoi(argv[3])) > 0
+            && (shortest_itemset = stoi(argv[4])) > 0){
         dataset.open(argv[1]);
-        threshold = atoi(argv[2]);
-        word_per_line = atoi(argv[3]);
+
+        if(!dataset.is_open())
+            cerr << "ERROR: opening file" << endl;
+
+    } else {
+        cout << "Usage: ./fpgrowth file threshold wordPerLine shortestItemset" << endl;
     }
 
-    int i = 0;
     while(getline(dataset, line)){
         iss.str(line);
         tmp = new vector<string>;
         i = 0;
         while(iss >> item){
             tmp->push_back(item);
-
-            if(support_count.find(item) == support_count.end())
-                support_count[item] = 1;
-            else support_count[item]++;
-
             i++;
 
             if(i == word_per_line) break;
@@ -124,7 +125,8 @@ int main(int argc, char **argv)
     sort(result.begin(), result.end(), pair_compare_result);
 
     for(pair<vector<string>, int> pattern : result){
-        if(pattern.second < threshold || pattern.first.size() < 3) continue;
+        if(pattern.second < threshold
+                || pattern.first.size() < (shortest_itemset + 1)) continue;
 
         sort(pattern.first.begin(), pattern.first.end());
         for(string item : pattern.first)
