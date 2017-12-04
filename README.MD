@@ -29,4 +29,4 @@ Output: Top N frequent itemset
 
 ## License
 
-See the [LICENSE](LICENSE) file for details
+GNU GENERAL PUBLIC LICENSE, see the [LICENSE](LICENSE) file for details.
