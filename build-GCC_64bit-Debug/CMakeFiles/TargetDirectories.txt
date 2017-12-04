@@ -1,0 +1,3 @@
+/home/paolo/Documents/HPC/PFP-Growth/build-GCC_64bit-Debug/CMakeFiles/edit_cache.dir
+/home/paolo/Documents/HPC/PFP-Growth/build-GCC_64bit-Debug/CMakeFiles/rebuild_cache.dir
+/home/paolo/Documents/HPC/PFP-Growth/build-GCC_64bit-Debug/CMakeFiles/PFP-Growth.dir
