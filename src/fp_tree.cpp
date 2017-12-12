@@ -6,12 +6,12 @@ fp_tree::fp_tree()
     this->root_node->parent = NULL;
     this->root_node->support = -1;
     this->root_node->item = string();
+    this->pointer_table = make_shared<map<string, vector<shared_ptr<fp_node>>>>();
 }
 
 fp_tree::~fp_tree()
 {
     clean_tree(root_node);
-    pointer_table.clear();
 }
 
 void fp_tree::insert_transaction(vector<string>::const_iterator next_item, vector<string>::const_iterator transaction_end)
@@ -37,7 +37,7 @@ void fp_tree::clean_tree(shared_ptr<fp_node> node){
 
 shared_ptr<vector<vector<string>>> fp_tree::get_transaction(string item)
 {
-    vector<shared_ptr<fp_node>> pointer_vector = pointer_table[item];
+    vector<shared_ptr<fp_node>> pointer_vector = pointer_table->operator[](item);
     shared_ptr<vector<vector<string>>> transactions = make_shared<vector<vector<string>>>();
     pair<shared_ptr<vector<string>>, int> transaction_support;
 
@@ -72,7 +72,7 @@ void fp_tree::insert(shared_ptr<fp_node> current_node, vector<string>::const_ite
         next_node->support = 1;
         next_node->parent = current_node;
         current_node->childs.push_back(next_node);
-        pointer_table[*next_item].push_back(next_node);
+        pointer_table->operator[](*next_item).push_back(next_node);
     } else {
         next_node->support++;
     }
