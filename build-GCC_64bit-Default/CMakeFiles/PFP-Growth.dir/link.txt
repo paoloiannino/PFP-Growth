@@ -1,1 +1,0 @@
-/usr/bin/g++    -std=c++11 -Wall -Werror -fno-strict-overflow -ftrapv -fstack-protector -fno-delete-null-pointer-checks -fwrapv -fopenmp   CMakeFiles/PFP-Growth.dir/src/main.cpp.o CMakeFiles/PFP-Growth.dir/src/fp_tree.cpp.o  -o PFP-Growth -rdynamic 

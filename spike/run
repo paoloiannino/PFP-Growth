@@ -1,0 +1,2 @@
+#! /bin/bash
+mpirun -hostfile hostfile pfp ../PFP-Growth/test/data/test256.tsv 1 1000 1

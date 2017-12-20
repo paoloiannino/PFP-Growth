@@ -32,7 +32,6 @@ void fp_tree::clean_tree(shared_ptr<fp_node> node){
 
     node->childs.clear();
     return;
-
 }
 
 shared_ptr<vector<vector<string>>> fp_tree::get_transaction(string item)

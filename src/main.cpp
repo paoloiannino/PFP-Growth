@@ -121,9 +121,6 @@ int main(int argc, char **argv)
     cout << "PFP-Growth is " << ((fp_duration.count() - pfp_duration.count()) / fp_duration.count()) * 100 << "% faster" << endl;
     cout << endl;
 
-
-
-
     dataset.close();
 
     return 0;
@@ -196,8 +193,14 @@ void master(const vector<vector<string>> &transactions, int threshold){
     shared_ptr<vector<string>> tmp_vector;
     shared_ptr<fp_tree> ft = make_shared<fp_tree>();
     vector<string> pattern;
+    vector<string> tmp_transaction;
+    steady_clock::time_point master_begin;
+    steady_clock::time_point master_end;
+    duration<double> master_duration;
+
     pattern.push_back(string());
 
+    master_begin = steady_clock::now();
     for(vector<string> transaction : transactions)
         for(string item : transaction)
             if(support_count.find(item) == support_count.end())
@@ -216,10 +219,26 @@ void master(const vector<vector<string>> &transactions, int threshold){
 
     sort(header_table.begin(), header_table.end(), pair_compare);
 
-    for(vector<string> transaction : transactions){
-        sort(transaction.begin(), transaction.end(), support_compare(support_count));
-        ft->insert_transaction(transaction.begin(), transaction.end());
+//    for(vector<string> transaction : transactions){
+//        sort(transaction.begin(), transaction.end(), support_compare(support_count));
+//        ft->insert_transaction(transaction.begin(), transaction.end());
+//    }
+
+#pragma omp parallel for num_threads(N_THREADS) private(tmp_transaction) shared(ft, transactions, support_count)
+    for(vector<vector<string>>::const_iterator transaction = transactions.begin(); transaction < transactions.end(); transaction++){
+        tmp_transaction = *transaction;
+        sort(tmp_transaction.begin(), tmp_transaction.end(), support_compare(support_count));
+#pragma omp critical
+        ft->insert_transaction(tmp_transaction.begin(), tmp_transaction.end());
     }
+    master_end = steady_clock::now();
+
+
+    master_duration = duration_cast<duration<double>>(master_end - master_begin);
+
+    cout.unsetf (ios::floatfield);
+    cout.precision(2);
+    cout << "Master: " << master_duration.count() << " seconds." << endl;
 
     pfp_growth(ft, header_table, pattern, threshold);
 }
@@ -232,7 +251,6 @@ void pfp_growth(shared_ptr<fp_tree> ft, const vector<pair<string, int>> &header_
     shared_ptr<vector<string>> tmp_vector;
     shared_ptr<vector<vector<string>>> tmp_transactions;
 
-
 //    for(pair<string, int> header_row : header_table){
 //            new_pattern = make_shared<vector<string>>(pattern);
 //            new_pattern->push_back(header_row.first);
@@ -244,6 +262,7 @@ void pfp_growth(shared_ptr<fp_tree> ft, const vector<pair<string, int>> &header_
             new_pattern = make_shared<vector<string>>(pattern);
             new_pattern->push_back(header_row->first);
             tmp_transactions = ft->get_transaction(header_row->first);
+
 
             for(vector<string> transaction : *tmp_transactions)
                 for(string item : transaction)

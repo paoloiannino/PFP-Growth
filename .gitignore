@@ -70,4 +70,13 @@ Thumbs.db
 # --------
 *.dll
 *.exe
+prova*
+spike/prova
+spike/pfp
+build-GCC_64bit-Debug
+build-GCC_64bit-Default
+CMakeLists.txt
+CMakeLists.txt.user
+src/PFP-Growth/
+
 
