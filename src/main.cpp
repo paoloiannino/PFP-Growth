@@ -20,11 +20,10 @@
 #define MASTER          0
 #define NO_TAG          0
 #define END             "***END***"
-//#define DEBUG
+#define DEBUG
 
 #define ERR(s){cerr << "ERROR " << s << endl; exit(EXIT_FAILURE);}
 #define ECHO(a){cout << a << endl;}
-#define OK cout << "OK" << endl;
 
 using namespace std;
 using namespace std::chrono;
@@ -66,7 +65,7 @@ int main(int argc, char **argv)
     duration<double> pfp_duration;
 
 #ifdef DEBUG
-    this_thread::sleep_for(milliseconds(20000));
+    this_thread::sleep_for(milliseconds(5000));
 #endif
 
     MPI_Init(&argc, &argv);
@@ -179,8 +178,6 @@ void read_transactions(vector<vector<string>> &transactions){
             string_stream.clear();
         }
     }
-
-
 }
 
 void send_result(const vector<string> &itemset, const int &support){
@@ -303,14 +300,16 @@ void master(const vector<vector<string>> &transactions, int threshold){
     mpi_size -= 1;
     int my_item = my_rank;
     for(map<string, int>::iterator it = support_count.begin(); it != support_count.end(); it++, item_id++){
-        if(it->second > threshold && item_id == my_item){
+        if(item_id == my_item){
+            my_item += mpi_size;
+            if(it->second > threshold){
             tmp_vector = make_shared<vector<string>>();
             tmp_vector->push_back("");
             tmp_vector->push_back(it->first);
             //pfp_result.push_back({*tmp_vector, it->second});
             send_result(*tmp_vector, it->second);
             header_table.push_back({it->first, it->second});
-            my_item += mpi_size;
+            }
         }
     }
 
