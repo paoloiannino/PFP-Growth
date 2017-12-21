@@ -79,5 +79,6 @@ CMakeLists.txt
 CMakeLists.txt.user
 src/PFP-Growth/
 build-PFP-Growth-mpi-Default/
+fp
 
 
