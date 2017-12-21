@@ -15,13 +15,13 @@
 
 #include "fp_tree.h"
 
-#define N_THREADS       8
+#define N_THREADS       2
 #define BUFFER_SIZE     8192
 #define MASTER          0
 #define NO_TAG          0
 #define END             "***END***"
 #define ESCAPE_CHAR     string("#")
-#define DEBUG
+//#define DEBUG
 
 #define ERR(s){cerr << "ERROR " << s << endl; exit(EXIT_FAILURE);}
 #define ECHO(a){cout << a << endl;}
@@ -44,6 +44,21 @@ void fp_growth(const vector<vector<string>> &transactions, const vector<string> 
 void pfp_growth(const vector<vector<string>> &transactions, const map<string, int> &support_count, int threshold);
 void pfp_growthR(shared_ptr<fp_tree> ft, const vector<pair<string, int>> &header_table,  const vector<string> &pattern, int threshold);
 
+template<typename A, typename B>
+std::pair<B,A> flip_pair(const std::pair<A,B> &p)
+{
+    return std::pair<B,A>(p.second, p.first);
+}
+
+template<typename A, typename B>
+std::multimap<B,A> flip_map(const std::map<A,B> &src)
+{
+    std::multimap<B,A> dst;
+    std::transform(src.begin(), src.end(), std::inserter(dst, dst.begin()),
+                   flip_pair<A,B>);
+    return dst;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -55,6 +70,7 @@ int main(int argc, char **argv)
     vector<vector<string>> transactions;
     map<string, int> support_count;
     map<string, int> results;
+    multimap<int, string> top100;
 
 #ifdef DEBUG
     this_thread::sleep_for(milliseconds(5000));
@@ -84,8 +100,9 @@ int main(int argc, char **argv)
     if(MPI_Finalize() != MPI_SUCCESS)
         ERR("MPI_Finalize@main");
 
-//    for(pair<string, int> result : results)
-//        cout << result.first << "#" << result.second << endl;
+    for(pair<string, int> result : results)
+        if(result.second > 1)
+            cout << result.first << " #" << result.second << endl;
 
     return 0;
 }
@@ -265,7 +282,7 @@ void send_result(vector<string> itemset, const int &support){
 
     sort(itemset.begin(), itemset.end());
     for(string item : itemset)
-        result += " " + item;
+        result += item + " ";
     result += " " + ESCAPE_CHAR + to_string(support);
     string_length = result.length() + 1;
     if(MPI_Send(&string_length, 1, MPI_INT, MASTER, NO_TAG, MPI_COMM_WORLD) != MPI_SUCCESS)
@@ -318,7 +335,7 @@ void get_results(const int &mpi_num_processes, map<string, int> &results){
                 if(results.find(itemset) == results.end()) results[itemset] = support;
                 else results[itemset] += support;
 
-                cout << "Process " << process_id << ": " << result << endl;
+                // cout << "Process " << process_id << ": " << result << endl;
             }
         }
     }
@@ -384,14 +401,15 @@ void pfp_growth(const vector<vector<string>> &transactions, const map<string, in
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
     mpi_size = (threshold == 0)? 1 : mpi_size - 1;
     int my_item = (threshold == 0)? 1 : my_rank;
+
     for(map<string, int>::const_iterator it = support_count.begin(); it != support_count.end(); it++, item_id++){
         if(item_id == my_item){
             my_item += mpi_size;
             if(it->second > threshold){
-            tmp_vector = make_shared<vector<string>>();
-            tmp_vector->push_back("");
-            tmp_vector->push_back(it->first);
-            send_result(*tmp_vector, it->second);
+//            tmp_vector = make_shared<vector<string>>();
+//            tmp_vector->push_back("");
+//            tmp_vector->push_back(it->first);
+//            send_result(*tmp_vector, it->second);
             header_table.push_back({it->first, it->second});
             }
         }
