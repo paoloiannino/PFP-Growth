@@ -3,7 +3,7 @@ import random
 
 MAX_ID = 256;
 MAX_ITEMS = 15;
-N_TRASACTIONS = 1000
+N_TRASACTIONS = 10000
 
 file_csv = open('./data/artificial_dataset_pfp.csv','w')
 file_tsv = open('./data/artificial_dataset_pfp.tsv','w')

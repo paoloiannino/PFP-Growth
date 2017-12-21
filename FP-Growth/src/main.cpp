@@ -58,7 +58,9 @@ int main(int argc, char **argv)
     }
 
     pattern.push_back(string(""));
+    begin = steady_clock::now();
     fp_growth(transactions, pattern, threshold);
+    end = steady_clock::now();
 
 #ifdef PRINT_RESULT
     for(pair<vector<string>, int> result : results){
