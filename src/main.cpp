@@ -15,6 +15,7 @@
 
 #include "pfp_growth.h"
 
+//#define NO_MPI
 //#define PRINT_RESULT
 
 using namespace std;
@@ -22,8 +23,8 @@ using namespace std::chrono;
 
 int main(int argc, char **argv)
 {
-    int mpi_rank;
-    int mpi_num_processes;
+    int mpi_rank(MASTER);
+    int mpi_num_processes(1);
     int threshold (0);
     vector<vector<string>> transactions;
     map<string, int> support_count;
@@ -33,9 +34,11 @@ int main(int argc, char **argv)
     steady_clock::time_point end;
     duration<double> pfp_duration;
 
+#ifdef NO_MPI
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_num_processes);
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+#endif
 
     if(argc != 3 || (threshold = stoi(argv[2])) < 0)
             ERR("Usage: ./pfp-growth file threshold");
@@ -79,8 +82,10 @@ int main(int argc, char **argv)
         cout << "PFP TIME: " << pfp_duration.count() << endl;
     }
 
+#ifdef NO_MPI
     if(MPI_Finalize() != MPI_SUCCESS)
         ERR("MPI_Finalize@main");
+#endif
 
     return 0;
 }
