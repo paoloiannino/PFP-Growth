@@ -28,7 +28,8 @@ int main(int argc, char **argv)
     vector<vector<string>> transactions;
     map<string, int> support_count;
     map<string, int> results;
-    steady_clock::time_point begin;
+    steady_clock::time_point begin_all;
+    steady_clock::time_point begin_pfp_only;
     steady_clock::time_point end;
     duration<double> pfp_duration;
 
@@ -39,17 +40,28 @@ int main(int argc, char **argv)
     if(argc != 3 || (threshold = stoi(argv[2])) < 0)
             ERR("Usage: ./pfp-growth file threshold");
 
-    if(mpi_rank == MASTER){
-        begin = steady_clock::now();
-        if(threshold == 0) split_dataset(argv[1]);
-        else share_dataset(argv[1]);
+    begin_all = steady_clock::now();
+    if(mpi_num_processes > 1){
+        switch (mpi_rank) {
+            case MASTER:
+                if(threshold == 0) split_dataset(argv[1]);
+                else share_dataset(argv[1]);
 
-        get_results(mpi_num_processes, results);
-        end = steady_clock::now();
+                begin_pfp_only = steady_clock::now();
+                get_results(mpi_num_processes, results);
+                end = steady_clock::now();
+                break;
+            default:
+                if(threshold == 0) read_chunk(transactions, support_count);
+                else read_transactions(transactions, support_count);
+                pfp_growth(transactions, support_count, threshold);
+
+        }
     } else {
-        if(threshold == 0) read_chunk(transactions, support_count);
-        else read_transactions(transactions, support_count);
-        pfp_growth(transactions, support_count, threshold);
+        read_dataset(argv[1], transactions, support_count);
+        begin_pfp_only = steady_clock::now();
+        pfp_growth_local(transactions, support_count, threshold, results);
+        end = steady_clock::now();
     }
 
 #ifdef PRINT_RESULT
@@ -59,10 +71,12 @@ int main(int argc, char **argv)
 #endif
 
     if(mpi_rank == MASTER){
-        pfp_duration = duration_cast<duration<double>>(end - begin);
         cout.unsetf (ios::floatfield);
         cout.precision(5);
-        cout << "TIME: " << pfp_duration.count() << endl;
+        pfp_duration = duration_cast<duration<double>>(end - begin_all);
+        cout << "TOTAL TIME: " << pfp_duration.count() << endl;
+        pfp_duration = duration_cast<duration<double>>(end - begin_pfp_only);
+        cout << "PFP TIME: " << pfp_duration.count() << endl;
     }
 
     if(MPI_Finalize() != MPI_SUCCESS)
@@ -70,7 +84,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-
-
-

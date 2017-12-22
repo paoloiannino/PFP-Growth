@@ -36,13 +36,15 @@ int main(int argc, char **argv)
     vector<string> tmp;
     vector<string> pattern;
     vector<vector<string>> transactions;
-    steady_clock::time_point begin;
+    steady_clock::time_point begin_all;
+    steady_clock::time_point begin_fp_only;
     steady_clock::time_point end;
     duration<double> fp_duration;
 
     if(argc != 3 || (threshold = stoi(argv[2])) < 0)
         ERR("Usage: ./fp-growth file threshold");
 
+    begin_all = steady_clock::now();
     dataset.open(argv[1]);
     if(!dataset.is_open())
         ERR("Opening file@main");
@@ -58,7 +60,7 @@ int main(int argc, char **argv)
     }
 
     pattern.push_back(string(""));
-    begin = steady_clock::now();
+    begin_fp_only = steady_clock::now();
     fp_growth(transactions, pattern, threshold);
     end = steady_clock::now();
 
@@ -71,10 +73,12 @@ int main(int argc, char **argv)
     }
 #endif
 
-    fp_duration = duration_cast<duration<double>>(end - begin);
     cout.unsetf (ios::floatfield);
     cout.precision(5);
-    cout << "TIME: " << fp_duration.count() << endl;
+    fp_duration = duration_cast<duration<double>>(end - begin_all);
+    cout << "TOTAL TIME: " << fp_duration.count() << endl;
+    fp_duration = duration_cast<duration<double>>(end - begin_fp_only);
+    cout << "FP TIME: " << fp_duration.count() << endl;
 
     return 0;
 }

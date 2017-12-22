@@ -1,8 +1,8 @@
 # encoding utf-8
 import random
 
-MAX_ID = 256;
-MAX_ITEMS = 15;
+MAX_ID = 128;
+MAX_ITEMS = 10;
 N_TRASACTIONS = 10000
 
 file_csv = open('./data/artificial_dataset_pfp.csv','w')

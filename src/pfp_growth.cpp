@@ -26,6 +26,31 @@ struct support_compare{
     map<string, int> support_reference;
 };
 
+void read_dataset(char *filename, vector<vector<string>> &transactions, map<string, int> &support_count){
+    string line;
+    string item;
+    ifstream dataset;
+    istringstream iss;
+    vector<string> tmp;
+
+    dataset.open(filename);
+    if(!dataset.is_open())
+        ERR("Opening file@main");
+
+    while(getline(dataset, line)){
+        iss.str(line);
+        tmp.clear();
+        while(iss >> item){
+            tmp.push_back(item);
+            if(support_count.find(item) == support_count.end()) support_count[item] = 1;
+            else support_count[item]++;
+        }
+
+        transactions.push_back(tmp);
+        iss.clear();
+    }
+}
+
 void share_dataset(char *dataset_path){
     int nbytes;
     char buffer[BUFFER_SIZE];
@@ -167,14 +192,24 @@ void read_chunk(vector<vector<string>> &transactions, map<string, int> &support_
     }
 }
 
-void send_result(vector<string> itemset, const int &support){
+string parse_result(const vector<string> &itemset, const int &support){
+    string result;
+
+    for(string item : itemset)
+	   result += item + " ";
+
+    result += " " + ESCAPE_CHAR + to_string(support);
+
+    return result;
+}
+
+void send_result(vector<string> itemset, const int &support, const int &threshold){
     int string_length;
     string result;
 
-    sort(itemset.begin(), itemset.end());
-    for(string item : itemset)
-	result += item + " ";
-    result += " " + ESCAPE_CHAR + to_string(support);
+    if(threshold == 0) sort(itemset.begin(), itemset.end());
+
+    result = parse_result(itemset, support);
     string_length = result.length() + 1;
     if(MPI_Send(&string_length, 1, MPI_INT, MASTER, NO_TAG, MPI_COMM_WORLD) != MPI_SUCCESS)
 		ERR("MPI_Send@send_result");
@@ -232,45 +267,6 @@ void get_results(const int &mpi_num_processes, map<string, int> &results){
     }
 }
 
-void fp_growth(const vector<vector<string>> &transactions, const vector<string> &pattern, int threshold){
-    map<string, int> support_count;
-    vector<pair<string, int>> header_table;
-    shared_ptr<vector<string>> tmp_vector;
-    shared_ptr<fp_tree> ft = make_shared<fp_tree>();
-    shared_ptr<vector<vector<string>>> tmp_transactions;
-
-    for(vector<string> transaction : transactions)
-        for(string item : transaction)
-            if(support_count.find(item) == support_count.end())
-            support_count[item] = 1;
-            else support_count[item]++;
-
-    for(map<string, int>::iterator it = support_count.begin(); it != support_count.end(); it++){
-        header_table.push_back({it->first, it->second});
-        tmp_vector = make_shared<vector<string>>(pattern);
-        tmp_vector->push_back(it->first);
-
-//        if(it->second > threshold)
-//            fp_result.push_back({*tmp_vector, it->second});
-    }
-
-    sort(header_table.begin(), header_table.end(), pair_compare);
-
-    for(vector<string> transaction : transactions){
-        sort(transaction.begin(), transaction.end(), support_compare(support_count));
-        ft->insert_transaction(transaction.begin(), transaction.end());
-    }
-
-    for(pair<string, int> header_row : header_table){
-        if(header_row.second > threshold){
-            tmp_vector = make_shared<vector<string>>(pattern);
-            tmp_vector->push_back(header_row.first);
-            tmp_transactions = ft->get_transaction(header_row.first);
-            fp_growth(*tmp_transactions, *tmp_vector, threshold);
-        }
-    }
-}
-
 void pfp_growth(const vector<vector<string>> &transactions, const map<string, int> &support_count, int threshold){
     vector<pair<string, int>> header_table;
     shared_ptr<vector<string>> tmp_vector;
@@ -302,7 +298,7 @@ void pfp_growth(const vector<vector<string>> &transactions, const map<string, in
         return;
     }
 
-#pragma omp parallel for num_threads(N_THREADS) private(tmp_transaction) shared(ft, transactions, support_count)
+#pragma omp parallel for schedule(OMP_FOR_SCHEDULE) private(tmp_transaction) shared(ft, transactions, support_count)
     for(vector<vector<string>>::const_iterator transaction = transactions.begin(); transaction < transactions.end(); transaction++){
         tmp_transaction = *transaction;
         sort(tmp_transaction.begin(), tmp_transaction.end(), support_compare(support_count));
@@ -323,7 +319,7 @@ void pfp_growthR(shared_ptr<fp_tree> ft, const vector<pair<string, int>> &header
     shared_ptr<vector<string>> tmp_vector;
     shared_ptr<vector<vector<string>>> tmp_transactions;
 
-#pragma omp parallel for num_threads(N_THREADS) private(support_count, new_header_table, new_pattern, new_ft, tmp_vector, tmp_transactions) shared(ft, header_table, pattern, threshold)
+#pragma omp parallel for schedule(OMP_FOR_SCHEDULE) private(support_count, new_header_table, new_pattern, new_ft, tmp_vector, tmp_transactions) shared(ft, header_table, pattern, threshold)
     for(vector<pair<string, int>>::const_iterator header_row = header_table.begin(); header_row < header_table.end(); header_row++){
 	    new_pattern = make_shared<vector<string>>(pattern);
 	    new_pattern->push_back(header_row->first);
@@ -340,7 +336,7 @@ void pfp_growthR(shared_ptr<fp_tree> ft, const vector<pair<string, int>> &header
 		    tmp_vector = make_shared<vector<string>>(*new_pattern);
 		    tmp_vector->push_back(it->first);
 #pragma omp critical
-		    send_result(*tmp_vector, it->second);
+		    send_result(*tmp_vector, it->second, threshold);
 		    new_header_table.push_back({it->first, it->second});
 	       }
 	    }
@@ -354,6 +350,80 @@ void pfp_growthR(shared_ptr<fp_tree> ft, const vector<pair<string, int>> &header
 	    }
 
 	    pfp_growthR(new_ft, new_header_table, *new_pattern, threshold);
+	    new_header_table.clear();
+	    support_count.clear();
+    }
+}
+
+void pfp_growth_local(const vector<vector<string>> &transactions, const map<string, int> &support_count, int threshold, map<string, int> &results){
+    vector<pair<string, int>> header_table;
+    shared_ptr<vector<string>> tmp_vector;
+    shared_ptr<fp_tree> ft = make_shared<fp_tree>();
+    vector<string> pattern;
+    vector<string> tmp_transaction;
+
+    pattern.push_back(string());
+
+    for(map<string, int>::const_iterator it = support_count.begin(); it != support_count.end(); it++){
+        if(it->second > threshold){
+            header_table.push_back({it->first, it->second});
+        }
+    }
+
+#pragma omp parallel for schedule(OMP_FOR_SCHEDULE) private(tmp_transaction) shared(ft, transactions, support_count)
+    for(vector<vector<string>>::const_iterator transaction = transactions.begin(); transaction < transactions.end(); transaction++){
+        tmp_transaction = *transaction;
+        sort(tmp_transaction.begin(), tmp_transaction.end(), support_compare(support_count));
+#pragma omp critical
+        ft->insert_transaction(tmp_transaction.begin(), tmp_transaction.end());
+    }
+
+    pfp_growthR_local(ft, header_table, pattern, threshold, results);
+}
+
+void pfp_growthR_local(shared_ptr<fp_tree> ft, const vector<pair<string, int>> &header_table,  const vector<string> &pattern, int threshold, map<string, int> &results){
+    string itemset;
+    map<string, int> support_count;
+    vector<pair<string, int>> new_header_table;
+    shared_ptr<vector<string>> new_pattern;
+    shared_ptr<fp_tree> new_ft;
+    shared_ptr<vector<string>> tmp_vector;
+    shared_ptr<vector<vector<string>>> tmp_transactions;
+
+#pragma omp parallel for schedule(OMP_FOR_SCHEDULE) private(itemset, support_count, new_header_table, new_pattern, new_ft, tmp_vector, tmp_transactions) shared(ft, header_table, pattern, threshold)
+    for(vector<pair<string, int>>::const_iterator header_row = header_table.begin(); header_row < header_table.end(); header_row++){
+	    new_pattern = make_shared<vector<string>>(pattern);
+	    new_pattern->push_back(header_row->first);
+	    tmp_transactions = ft->get_transaction(header_row->first);
+
+	    for(vector<string> transaction : *tmp_transactions)
+		for(string item : transaction)
+		    if(support_count.find(item) == support_count.end())
+			support_count[item] = 1;
+		    else support_count[item]++;
+
+	    for(map<string, int>::iterator it = support_count.begin(); it != support_count.end(); it++){
+		if(it->second > threshold){
+		    tmp_vector = make_shared<vector<string>>(*new_pattern);
+		    tmp_vector->push_back(it->first);
+            itemset = string();
+            for(string item : *tmp_vector)
+        	   itemset += item + " ";
+#pragma omp critical
+            results[itemset] = it->second;
+		    new_header_table.push_back({it->first, it->second});
+	       }
+	    }
+
+	    sort(new_header_table.begin(), new_header_table.end(), pair_compare);
+
+	    new_ft = make_shared<fp_tree>();
+	    for(vector<string> transaction : *tmp_transactions){
+		sort(transaction.begin(), transaction.end(), support_compare(support_count));
+		new_ft->insert_transaction(transaction.begin(), transaction.end());
+	    }
+
+	    pfp_growthR_local(new_ft, new_header_table, *new_pattern, threshold, results);
 	    new_header_table.clear();
 	    support_count.clear();
     }
