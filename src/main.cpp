@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     steady_clock::time_point end;
     duration<double> pfp_duration;
 
-#ifdef NO_MPI
+#ifndef NO_MPI
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_num_processes);
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
         cout << "PFP TIME: " << pfp_duration.count() << endl;
     }
 
-#ifdef NO_MPI
+#ifndef NO_MPI
     if(MPI_Finalize() != MPI_SUCCESS)
         ERR("MPI_Finalize@main");
 #endif

@@ -18,7 +18,6 @@
 
 #include "fp_tree.h"
 
-#define N_THREADS       2
 #define OMP_FOR_SCHEDULE static
 #define BUFFER_SIZE     8192
 #define MASTER          0
