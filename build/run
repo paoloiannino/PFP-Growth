@@ -1,0 +1,5 @@
+#! /bin/bash
+make -f mymakefile
+run='mpirun -hostfile hostfile -np 1 -x OMP_NUM_THREADS=8 PFP-Growth ../test/data/test256.tsv 3' 
+echo $run
+eval $run

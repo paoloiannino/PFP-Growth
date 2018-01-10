@@ -1,0 +1,8 @@
+#! /bin/bash
+make -f mymakefile_local
+OMP_NUM_THREADS=8
+export OMP_NUM_THREADS
+echo "NUM THREADS: $OMP_NUM_THREADS"
+run='./PFP-Growth_local ../test/data/test256.tsv 3' 
+echo $run
+eval $run
