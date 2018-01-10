@@ -10,13 +10,15 @@
 #include <chrono>
 #include <string.h>
 #include <stdio.h>
-#include <mpi.h>
 #include <thread>
 
 #include "pfp_growth.h"
 
-//#define NO_MPI
 //#define PRINT_RESULT
+
+#ifndef NO_MPI
+#include <mpi.h>
+#endif
 
 using namespace std;
 using namespace std::chrono;
@@ -45,6 +47,7 @@ int main(int argc, char **argv)
 
     begin_all = steady_clock::now();
     if(mpi_num_processes > 1){
+#ifndef NO_MPI
         switch (mpi_rank) {
             case MASTER:
                 if(threshold == 0) split_dataset(argv[1]);
@@ -60,6 +63,7 @@ int main(int argc, char **argv)
                 pfp_growth(transactions, support_count, threshold);
 
         }
+#endif
     } else {
         read_dataset(argv[1], transactions, support_count);
         begin_pfp_only = steady_clock::now();

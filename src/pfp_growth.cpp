@@ -26,31 +26,7 @@ struct support_compare{
     map<string, int> support_reference;
 };
 
-void read_dataset(char *filename, vector<vector<string>> &transactions, map<string, int> &support_count){
-    string line;
-    string item;
-    ifstream dataset;
-    istringstream iss;
-    vector<string> tmp;
-
-    dataset.open(filename);
-    if(!dataset.is_open())
-        ERR("Opening file@main");
-
-    while(getline(dataset, line)){
-        iss.str(line);
-        tmp.clear();
-        while(iss >> item){
-            tmp.push_back(item);
-            if(support_count.find(item) == support_count.end()) support_count[item] = 1;
-            else support_count[item]++;
-        }
-
-        transactions.push_back(tmp);
-        iss.clear();
-    }
-}
-
+#ifndef NO_MPI
 void share_dataset(char *dataset_path){
     int nbytes;
     char buffer[BUFFER_SIZE];
@@ -215,7 +191,7 @@ void send_result(vector<string> itemset, const int &support, const int &threshol
 		ERR("MPI_Send@send_result");
 
     if(MPI_Send(result.c_str(), string_length, MPI_CHAR, MASTER, NO_TAG, MPI_COMM_WORLD) != MPI_SUCCESS)
-		ERR("MPI_Send@send_result");
+        ERR("MPI_Send@send_result");
 }
 
 void send_end(){
@@ -226,7 +202,7 @@ void send_end(){
 		ERR("MPI_Send@send_result");
 
     if(MPI_Send(end, string_length, MPI_CHAR, MASTER, NO_TAG, MPI_COMM_WORLD) != MPI_SUCCESS)
-		ERR("MPI_Send@send_result");
+        ERR("MPI_Send@send_result");
 }
 
 void get_results(const int &mpi_num_processes, map<string, int> &results){
@@ -352,6 +328,32 @@ void pfp_growthR(shared_ptr<fp_tree> ft, const vector<pair<string, int>> &header
 	    pfp_growthR(new_ft, new_header_table, *new_pattern, threshold);
 	    new_header_table.clear();
 	    support_count.clear();
+    }
+}
+#endif
+
+void read_dataset(char *filename, vector<vector<string>> &transactions, map<string, int> &support_count){
+    string line;
+    string item;
+    ifstream dataset;
+    istringstream iss;
+    vector<string> tmp;
+
+    dataset.open(filename);
+    if(!dataset.is_open())
+        ERR("Opening file@main");
+
+    while(getline(dataset, line)){
+        iss.str(line);
+        tmp.clear();
+        while(iss >> item){
+            tmp.push_back(item);
+            if(support_count.find(item) == support_count.end()) support_count[item] = 1;
+            else support_count[item]++;
+        }
+
+        transactions.push_back(tmp);
+        iss.clear();
     }
 }
 
