@@ -17,7 +17,7 @@
 
 #include "fp_tree.h"
 
-#define NO_MPI
+//#define NO_MPI
 
 #ifndef NO_MPI
 #include <mpi.h>
