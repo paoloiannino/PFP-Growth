@@ -3,10 +3,6 @@
 
 This project is part of the course *High Performance Computing (2017)* at ENSIMAG (Grenoble).
 
-## Getting Started
-
-This section will contain the instruction to evaluate the project.
-
 ## Authors
 
 * **Iannino Paolo**
